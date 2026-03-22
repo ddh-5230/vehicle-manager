@@ -1,0 +1,12 @@
+node_modules/
+dist/
+
+.DS_Store
+*.log
+
+# Electron / local runtime data
+*.db
+*.sqlite
+
+# macOS temp
+*.swp

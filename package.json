@@ -1,0 +1,64 @@
+{
+  "name": "vehicle-manager",
+  "version": "1.0.0",
+  "description": "危险品运输车辆检查管理系统（离线 Electron + SQLite）",
+  "main": "main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main/index.js && node --check main/db.js && node --check renderer/app.js",
+    "pack:dir": "electron-builder --dir",
+    "pack:mac": "electron-builder --mac dmg",
+    "pack:win": "electron-builder --win nsis"
+  },
+  "keywords": [
+    "electron",
+    "sqlite",
+    "vehicle",
+    "inspection"
+  ],
+  "author": "local",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "sql.js": "^1.13.0",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.local.vehiclemanager",
+    "productName": "VehicleManager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "styles/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    }
+  }
+}
