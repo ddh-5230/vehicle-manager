@@ -127,6 +127,7 @@ function renderVehicles() {
         <td>${v.plate_no}</td>
         <td>${v.vehicle_model}</td>
         <td>${v.owner_name}</td>
+        <td>${v.owner_phone || "-"}</td>
         <td>${v.purchase_date || "-"}</td>
         <td>${v.item_count}</td>
         <td>${v.upcoming_count}</td>
@@ -139,7 +140,7 @@ function renderVehicles() {
         </td>
       </tr>`
       )
-      .join("") || `<tr><td colspan="9">暂无车辆，请先新增。</td></tr>`;
+      .join("") || `<tr><td colspan="10">暂无车辆，请先新增。</td></tr>`;
 }
 
 function renderItems() {
@@ -277,6 +278,7 @@ function openVehicleDialog(mode, row) {
     $("plateNo").value = row.plate_no || "";
     $("vehicleModel").value = row.vehicle_model || "";
     $("ownerName").value = row.owner_name || "";
+    $("ownerPhone").value = row.owner_phone || "";
     $("purchaseDate").value = row.purchase_date || "";
     $("vehicleNote").value = row.note || "";
   }
@@ -287,6 +289,7 @@ function openVehicleDialog(mode, row) {
     $("plateNo").value = "";
     $("vehicleModel").value = row.vehicle_model || "";
     $("ownerName").value = row.owner_name || "";
+    $("ownerPhone").value = row.owner_phone || "";
     $("purchaseDate").value = row.purchase_date || "";
     $("vehicleNote").value = row.note || "";
   }
@@ -352,6 +355,7 @@ function bindEvents() {
       plate_no: $("plateNo").value.trim(),
       vehicle_model: $("vehicleModel").value.trim(),
       owner_name: $("ownerName").value.trim(),
+      owner_phone: $("ownerPhone").value.trim(),
       purchase_date: $("purchaseDate").value || null,
       note: $("vehicleNote").value.trim()
     };

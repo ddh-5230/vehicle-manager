@@ -121,6 +121,7 @@ function ensureSchema() {
       plate_no TEXT NOT NULL UNIQUE,
       vehicle_model TEXT NOT NULL,
       owner_name TEXT NOT NULL,
+      owner_phone TEXT,
       purchase_date TEXT,
       note TEXT,
       created_at TEXT NOT NULL,
@@ -187,6 +188,12 @@ function ensureSchema() {
   run("CREATE INDEX IF NOT EXISTS idx_records_vehicle_item_date ON inspection_records(vehicle_id, item_id, check_date)");
   run("CREATE INDEX IF NOT EXISTS idx_vehicle_items_due_date ON vehicle_items(next_due_date)");
   run("CREATE INDEX IF NOT EXISTS idx_reminder_logs_date ON reminder_logs(reminder_date)");
+
+  const vehicleColumns = all("PRAGMA table_info(vehicles)");
+  const hasOwnerPhone = vehicleColumns.some((col) => col.name === "owner_phone");
+  if (!hasOwnerPhone) {
+    run("ALTER TABLE vehicles ADD COLUMN owner_phone TEXT");
+  }
 }
 
 function seedDefaultItems() {
@@ -309,13 +316,14 @@ function createVehicle(payload) {
   return tx(() => {
     const now = nowIso();
     run(
-      `INSERT INTO vehicles(vehicle_no, plate_no, vehicle_model, owner_name, purchase_date, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO vehicles(vehicle_no, plate_no, vehicle_model, owner_name, owner_phone, purchase_date, note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         payload.vehicle_no,
         payload.plate_no,
         payload.vehicle_model,
         payload.owner_name,
+        payload.owner_phone || "",
         payload.purchase_date || null,
         payload.note || "",
         now,
@@ -333,13 +341,14 @@ function updateVehicle(vehicleId, payload) {
     const now = nowIso();
     run(
       `UPDATE vehicles
-       SET vehicle_no = ?, plate_no = ?, vehicle_model = ?, owner_name = ?, purchase_date = ?, note = ?, updated_at = ?
+       SET vehicle_no = ?, plate_no = ?, vehicle_model = ?, owner_name = ?, owner_phone = ?, purchase_date = ?, note = ?, updated_at = ?
        WHERE id = ?`,
       [
         payload.vehicle_no,
         payload.plate_no,
         payload.vehicle_model,
         payload.owner_name,
+        payload.owner_phone || "",
         payload.purchase_date || null,
         payload.note || "",
         now,
@@ -360,13 +369,14 @@ function copyVehicle(sourceVehicleId, payload) {
 
     const now = nowIso();
     run(
-      `INSERT INTO vehicles(vehicle_no, plate_no, vehicle_model, owner_name, purchase_date, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO vehicles(vehicle_no, plate_no, vehicle_model, owner_name, owner_phone, purchase_date, note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         payload.vehicle_no,
         payload.plate_no,
         payload.vehicle_model || source.vehicle_model,
         payload.owner_name || source.owner_name,
+        payload.owner_phone || source.owner_phone || "",
         payload.purchase_date || source.purchase_date || null,
         payload.note || source.note || "",
         now,
