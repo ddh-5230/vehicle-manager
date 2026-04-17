@@ -47,6 +47,7 @@
                       <th>项目</th>
                       <th>到期日期</th>
                       <th>逾期天数</th>
+                      <th>操作</th>
                     </tr>
                   </thead>
                   <tbody id="overdueBody"></tbody>
@@ -80,7 +81,10 @@
           <section class="panel">
             <div class="panel-head">
               <h3>车辆列表</h3>
-              <button id="createVehicleBtn" class="btn primary">新增车辆</button>
+              <div class="actions">
+                <button id="importVehiclesBtn" class="btn secondary" type="button">Excel批量导入</button>
+                <button id="createVehicleBtn" class="btn primary">新增车辆</button>
+              </div>
             </div>
             <div class="table-wrap">
               <table>
@@ -326,6 +330,35 @@
         <div class="actions">
           <button class="btn primary" type="submit">确认关联</button>
           <button class="btn ghost" type="button" id="closeVehicleItemDialog">取消</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="importDialog" class="modal reminder-modal">
+      <form method="dialog" class="modal-form reminder-form" id="importForm">
+        <h3>车辆批量导入预览</h3>
+        <p class="reminder-subtitle" id="importFileInfo">未选择文件</p>
+        <div class="reminder-stats">
+          <article>
+            <span>可新增</span>
+            <strong id="importValidCount">0</strong>
+          </article>
+          <article>
+            <span>重复跳过</span>
+            <strong id="importSkippedCount">0</strong>
+          </article>
+          <article>
+            <span>失败条数</span>
+            <strong id="importFailedCount">0</strong>
+          </article>
+        </div>
+        <div class="reminder-list-wrap">
+          <ul id="importIssueList" class="reminder-list"></ul>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="reselectImportFileBtn" type="button">重新选择文件</button>
+          <button class="btn primary" id="confirmImportBtn" type="button">确认导入</button>
+          <button class="btn ghost" id="closeImportDialogBtn" type="button">关闭</button>
         </div>
       </form>
     </dialog>

@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld("api", {
   updateVehicle: (vehicleId, payload) => ipcRenderer.invoke("vehicles:update", vehicleId, payload),
   copyVehicle: (sourceVehicleId, payload) => ipcRenderer.invoke("vehicles:copy", sourceVehicleId, payload),
   deleteVehicle: (vehicleId) => ipcRenderer.invoke("vehicles:delete", vehicleId),
+  importVehiclesPreview: () => ipcRenderer.invoke("vehicles:import-preview"),
+  importVehiclesApply: (candidates) => ipcRenderer.invoke("vehicles:import-apply", candidates),
 
   listItems: () => ipcRenderer.invoke("items:list"),
   createItem: (payload) => ipcRenderer.invoke("items:create", payload),

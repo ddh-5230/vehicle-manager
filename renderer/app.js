@@ -4,7 +4,8 @@ const state = {
   records: [],
   selectedVehicleId: null,
   currentVehicleDetail: null,
-  lastQueryFilters: {}
+  lastQueryFilters: {},
+  importPreview: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -98,9 +99,20 @@ function renderDashboard(dashboard) {
         <td>${row.item_name}</td>
         <td>${row.next_due_date || "-"}</td>
         <td>${Math.abs(Number(row.days_left || 0))}</td>
+        <td>
+          <button
+            class="btn primary small-btn"
+            data-action="dashboard-overdue-handle"
+            data-vehicle-id="${row.vehicle_id}"
+            data-item-id="${row.item_id}"
+            data-item-name="${row.item_name}"
+          >
+            去处理
+          </button>
+        </td>
       </tr>`
       )
-      .join("") || `<tr><td colspan="5">暂无逾期项目</td></tr>`;
+      .join("") || `<tr><td colspan="6">暂无逾期项目</td></tr>`;
 
   $("upcomingBody").innerHTML =
     dashboard.upcoming
@@ -246,6 +258,30 @@ function renderQueryResult(rows) {
       .join("") || `<tr><td colspan="6">没有符合条件的数据</td></tr>`;
 }
 
+function renderImportPreview(preview) {
+  state.importPreview = preview;
+  if (!preview || preview.canceled) return;
+  $("importFileInfo").textContent = `文件：${preview.file_name || "-"} | 工作表：${preview.sheet_name || "-"}`;
+  $("importValidCount").textContent = String(preview.summary?.valid_count || 0);
+  $("importSkippedCount").textContent = String(preview.summary?.skipped_count || 0);
+  $("importFailedCount").textContent = String(preview.summary?.failed_count || 0);
+
+  const issueRows = []
+    .concat((preview.skipped || []).map((r) => ({ ...r, tag: "跳过" })))
+    .concat((preview.failed || []).map((r) => ({ ...r, tag: "失败" })));
+
+  $("importIssueList").innerHTML =
+    issueRows
+      .slice(0, 200)
+      .map((row) => {
+        const cls = row.tag === "失败" ? "overdue" : "upcoming";
+        return `<li class="${cls}">第 ${row.line_no} 行 | ${row.tag} | ${row.reason}</li>`;
+      })
+      .join("") || `<li class="normal">预检查通过，未发现重复或失败数据。</li>`;
+
+  $("confirmImportBtn").disabled = (preview.summary?.valid_count || 0) === 0;
+}
+
 async function refreshAll() {
   const [vehicles, items, records, dashboard] = await Promise.all([
     window.api.listVehicles(),
@@ -341,12 +377,45 @@ function bindEvents() {
   });
 
   $("createVehicleBtn").addEventListener("click", () => openVehicleDialog("create"));
+  $("importVehiclesBtn").addEventListener("click", async () => {
+    const preview = await safeCall(() => window.api.importVehiclesPreview());
+    if (!preview || preview.canceled) return;
+    renderImportPreview(preview);
+    $("importDialog").showModal();
+  });
   $("closeVehicleDialog").addEventListener("click", () => $("vehicleDialog").close());
   $("createItemBtn").addEventListener("click", () => openItemDialog("create"));
   $("closeItemDialog").addEventListener("click", () => $("itemDialog").close());
   $("addVehicleItemBtn").addEventListener("click", () => openVehicleItemDialog());
   $("closeVehicleItemDialog").addEventListener("click", () => $("vehicleItemDialog").close());
   $("closeCheckDialog").addEventListener("click", () => $("checkDialog").close());
+  $("closeImportDialogBtn").addEventListener("click", () => $("importDialog").close());
+
+  $("reselectImportFileBtn").addEventListener("click", async () => {
+    const preview = await safeCall(() => window.api.importVehiclesPreview());
+    if (!preview || preview.canceled) return;
+    renderImportPreview(preview);
+  });
+
+  $("confirmImportBtn").addEventListener("click", async () => {
+    const preview = state.importPreview;
+    if (!preview || !preview.candidates || preview.candidates.length === 0) {
+      toast("没有可导入数据");
+      return;
+    }
+    const result = await safeCall(() => window.api.importVehiclesApply(preview.candidates), "批量导入完成");
+    const mergedIssues = []
+      .concat((result.skipped || []).map((r) => `第 ${r.line_no} 行 | 跳过 | ${r.reason}`))
+      .concat((result.failed || []).map((r) => `第 ${r.line_no} 行 | 失败 | ${r.reason}`));
+    $("importValidCount").textContent = String(result.success_count || 0);
+    $("importSkippedCount").textContent = String(result.skipped_count || 0);
+    $("importFailedCount").textContent = String(result.failed_count || 0);
+    $("importIssueList").innerHTML =
+      mergedIssues.map((text) => `<li class="upcoming">${text}</li>`).join("") ||
+      `<li class="normal">全部导入成功，没有跳过或失败项。</li>`;
+    state.importPreview = null;
+    await refreshAll();
+  });
 
   $("vehicleForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -507,6 +576,15 @@ function bindEvents() {
   });
 
   $("recordCancelEdit").addEventListener("click", () => resetRecordForm());
+
+  $("overdueBody").addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-action='dashboard-overdue-handle']");
+    if (!btn) return;
+    const vehicleId = Number(btn.dataset.vehicleId);
+    const itemId = Number(btn.dataset.itemId);
+    const itemName = btn.dataset.itemName || "检查项目";
+    openCheckDialog(vehicleId, itemId, itemName);
+  });
 
   $("recordBody").addEventListener("click", async (event) => {
     const btn = event.target.closest("button[data-action]");

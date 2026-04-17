@@ -263,6 +263,91 @@ function bindVehicleEnabledItems(vehicleId, purchaseDate) {
   }
 }
 
+function validatePhone(phone) {
+  if (!phone) return true;
+  const normalized = String(phone).trim();
+  if (!normalized) return true;
+  return /^1\d{10}$/.test(normalized) || /^\d{3,4}-?\d{7,8}$/.test(normalized);
+}
+
+function hasVehicleConflict(vehicleNo, plateNo) {
+  const row = one(
+    `SELECT id FROM vehicles WHERE vehicle_no = ? OR plate_no = ? LIMIT 1`,
+    [vehicleNo, plateNo]
+  );
+  return Boolean(row);
+}
+
+function bulkImportVehicles(candidates = []) {
+  return tx(() => {
+    const success = [];
+    const skipped = [];
+    const failed = [];
+    const seenNo = new Set();
+    const seenPlate = new Set();
+
+    for (const row of candidates) {
+      const payload = row && row.payload ? row.payload : row;
+      const lineNo = row && row.line_no ? row.line_no : 0;
+      const vehicleNo = String(payload.vehicle_no || "").trim();
+      const plateNo = String(payload.plate_no || "").trim();
+      const vehicleModel = String(payload.vehicle_model || "").trim();
+      const ownerName = String(payload.owner_name || "").trim();
+      const ownerPhone = String(payload.owner_phone || "").trim();
+
+      if (!vehicleNo || !plateNo || !vehicleModel || !ownerName) {
+        failed.push({ line_no: lineNo, reason: "必填字段缺失", vehicle_no: vehicleNo, plate_no: plateNo });
+        continue;
+      }
+      if (!validatePhone(ownerPhone)) {
+        failed.push({ line_no: lineNo, reason: "负责人电话格式错误", vehicle_no: vehicleNo, plate_no: plateNo });
+        continue;
+      }
+
+      if (seenNo.has(vehicleNo) || seenPlate.has(plateNo)) {
+        skipped.push({ line_no: lineNo, reason: "Excel内重复：车辆编号或车牌号重复", vehicle_no: vehicleNo, plate_no: plateNo });
+        continue;
+      }
+
+      if (hasVehicleConflict(vehicleNo, plateNo)) {
+        skipped.push({ line_no: lineNo, reason: "唯一冲突：车辆编号或车牌号已存在", vehicle_no: vehicleNo, plate_no: plateNo });
+        continue;
+      }
+
+      const now = nowIso();
+      run(
+        `INSERT INTO vehicles(vehicle_no, plate_no, vehicle_model, owner_name, owner_phone, purchase_date, note, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          vehicleNo,
+          plateNo,
+          vehicleModel,
+          ownerName,
+          ownerPhone,
+          payload.purchase_date || null,
+          payload.note || "",
+          now,
+          now
+        ]
+      );
+      const vehicleId = lastInsertId();
+      bindVehicleEnabledItems(vehicleId, payload.purchase_date || null);
+      seenNo.add(vehicleNo);
+      seenPlate.add(plateNo);
+      success.push({ line_no: lineNo, vehicle_no: vehicleNo, plate_no: plateNo });
+    }
+
+    return {
+      success_count: success.length,
+      skipped_count: skipped.length,
+      failed_count: failed.length,
+      success,
+      skipped,
+      failed
+    };
+  });
+}
+
 function listVehicles() {
   const today = todayStr();
   const in7 = addDays(today, 7);
@@ -768,6 +853,7 @@ module.exports = {
   deleteItem,
   addVehicleItem,
   removeVehicleItem,
+  bulkImportVehicles,
   listRecords,
   createRecord,
   updateRecord,
