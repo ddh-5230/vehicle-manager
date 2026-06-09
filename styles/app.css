@@ -447,3 +447,51 @@ select {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
   }
 }
+
+/* 激活界面样式 */
+.activation-hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.activation-hint-small {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.activation-step {
+  margin-bottom: 12px;
+}
+
+.activation-step h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fingerprint-display {
+  display: flex;
+  gap: 8px;
+}
+
+.fingerprint-display input {
+  flex: 1;
+  font-family: "Monaco", "Courier New", monospace;
+  font-size: 12px;
+}
+
+.fingerprint-display .btn {
+  flex-shrink: 0;
+}
+
+#activationDialog .modal-form label {
+  display: grid;
+  gap: 6px;
+}
+
+#activationDialog input[type="text"] {
+  font-family: "Monaco", "Courier New", monospace;
+  font-size: 12px;
+}
