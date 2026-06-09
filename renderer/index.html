@@ -363,6 +363,36 @@
       </form>
     </dialog>
 
+    <dialog id="activationDialog" class="modal">
+      <form method="dialog" class="modal-form" id="activationForm">
+        <h3>软件激活</h3>
+        <p class="activation-hint">首次使用需要激活，请按以下步骤操作：</p>
+        
+        <div class="activation-step">
+          <h4>第 1 步：复制本机指纹</h4>
+          <div class="fingerprint-display">
+            <input type="text" id="fingerprintInput" readonly />
+            <button type="button" id="copyFingerprintBtn" class="btn secondary">复制</button>
+          </div>
+          <p class="activation-hint-small">将此指纹发送给开发者</p>
+        </div>
+
+        <div class="activation-step">
+          <h4>第 2 步：输入激活码</h4>
+          <label>
+            激活码
+            <input type="text" id="activationCodeInput" placeholder="请输入开发者提供的激活码" required />
+          </label>
+          <p class="activation-hint-small">开发者会根据指纹生成激活码并发送给你</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" type="submit">激活</button>
+          <button class="btn ghost" type="button" id="closeActivationDialog">关闭</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="checkDialog" class="modal">
       <form method="dialog" class="modal-form" id="checkForm">
         <h3 id="checkDialogTitle">登记检查</h3>

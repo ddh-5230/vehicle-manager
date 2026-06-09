@@ -2,8 +2,10 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const XLSX = require("xlsx");
 const db = require("./db");
+const ActivationManager = require("./activation-manager");
 
 let mainWindow = null;
+let activationManager = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -200,6 +202,25 @@ function buildVehicleImportPreview(rows, filePath, sheetName, existingVehicles) 
 }
 
 function registerHandlers() {
+  // 激活相关的 IPC 处理程序
+  ipcMain.handle("activation:get-fingerprint", async () => {
+    return { fingerprint: activationManager.generateFingerprint() };
+  });
+
+  ipcMain.handle("activation:is-activated", async () => {
+    return { activated: activationManager.isActivated() };
+  });
+
+  ipcMain.handle("activation:activate", async (_, activationCode) => {
+    return activationManager.activate(activationCode);
+  });
+
+  ipcMain.handle("app:restart", async () => {
+    app.relaunch();
+    app.exit(0);
+    return { success: true };
+  });
+
   ipcMain.handle("dashboard:get", async () => db.getDashboardData());
   ipcMain.handle("reminders:consume", async () => db.consumeDueReminders());
 
@@ -285,10 +306,28 @@ function handleErrors() {
 }
 
 app.whenReady().then(async () => {
-  await db.initDatabase(app.getPath("userData"));
+  const userDataPath = app.getPath("userData");
+  console.log("[应用启动] 用户数据路径:", userDataPath);
+  
+  await db.initDatabase(userDataPath);
+  activationManager = new ActivationManager(userDataPath);
+  
   handleErrors();
   registerHandlers();
+  
+  // 检查激活状态
+  console.log("[应用启动] 检查激活状态...");
+  const isActivated = activationManager.isActivated();
+  console.log("[应用启动] 激活状态:", isActivated ? "✓ 已激活" : "❌ 未激活");
+  
   createWindow();
+  
+  if (!isActivated) {
+    mainWindow.webContents.once("did-finish-load", () => {
+      console.log("[应用启动] 发送激活对话框信号");
+      mainWindow.webContents.send("show-activation-dialog");
+    });
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

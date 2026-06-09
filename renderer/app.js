@@ -367,10 +367,56 @@ function resetRecordForm() {
   $("recordResult").value = "pass";
 }
 
+async function showActivationDialog() {
+  const fpResult = await window.api.getFingerprint();
+  const fingerprint = fpResult?.fingerprint || "获取失败";
+  $("fingerprintInput").value = fingerprint;
+  $("activationDialog").showModal();
+}
+
+function bindActivationEvents() {
+  $("copyFingerprintBtn").addEventListener("click", () => {
+    const fp = $("fingerprintInput").value;
+    if (!fp || fp === "获取失败") {
+      toast("无法获取指纹");
+      return;
+    }
+    navigator.clipboard.writeText(fp).then(() => {
+      toast("已复制到剪贴板");
+    }).catch(() => {
+      toast("复制失败", true);
+    });
+  });
+
+  $("activationForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const activationCode = $("activationCodeInput").value.trim();
+    if (!activationCode) {
+      toast("请输入激活码");
+      return;
+    }
+    const result = await window.api.activate(activationCode);
+    if (result.success) {
+      toast("激活成功，应用将自动重启");
+      setTimeout(() => {
+        window.api.restartApp();
+      }, 1500);
+    } else {
+      toast(result.error || "激活失败", true);
+    }
+  });
+
+  $("closeActivationDialog").addEventListener("click", () => {
+    toast("请完成激活以继续使用");
+  });
+}
+
 function bindEvents() {
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
+
+  bindActivationEvents();
 
   $("refreshAllBtn").addEventListener("click", async () => {
     await safeCall(refreshAll, "数据已刷新");
@@ -691,6 +737,21 @@ async function notifyReminders() {
 async function init() {
   bindEvents();
   resetRecordForm();
+
+  // 监听激活对话框显示事件
+  if (window.api.onShowActivationDialog) {
+    window.api.onShowActivationDialog(() => {
+      showActivationDialog();
+    });
+  }
+
+  // 检查激活状态
+  const activatedResult = await window.api.isActivated();
+  if (!activatedResult.activated) {
+    await showActivationDialog();
+    return;
+  }
+
   await safeCall(refreshAll);
   await safeCall(notifyReminders);
 }
