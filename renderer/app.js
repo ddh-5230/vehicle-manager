@@ -367,11 +367,67 @@ function resetRecordForm() {
   $("recordResult").value = "pass";
 }
 
+function renderTrialBanner(status) {
+  const banner = $("trialBanner");
+  const badge = $("licenseBadge");
+  if (!banner) return;
+
+  if (!status) {
+    banner.classList.add("hidden");
+    if (badge) badge.classList.add("hidden");
+    return;
+  }
+
+  if (badge) {
+    badge.classList.remove("hidden");
+    badge.classList.toggle("activated", Boolean(status.activated));
+    badge.textContent = status.activated ? "已激活" : "未激活";
+  }
+
+  if (status.activated || status.trialExpired) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  const trialLabel = status.trialLabel || "5分钟";
+  const remainingMinutes = Math.max(1, Math.ceil(Number(status.remainingMs || 0) / (60 * 1000)));
+  const expiresAt = status.trialExpiresAt
+    ? new Date(status.trialExpiresAt).toLocaleString("zh-CN", { hour12: false })
+    : "";
+  $("trialBannerTitle").textContent = "当前状态：未激活";
+  $("trialBannerText").textContent = expiresAt
+    ? `试用总时长 ${trialLabel}，当前还剩 ${remainingMinutes} 分钟，到期时间：${expiresAt}。`
+    : `试用总时长 ${trialLabel}，到期后需要输入激活码。`;
+  banner.classList.remove("hidden");
+}
+
 async function showActivationDialog() {
+  return showActivationDialogWithStatus({ trialExpired: true, trialLabel: "5分钟" });
+}
+
+let accessStatus = null;
+
+async function showActivationDialogWithStatus(status) {
+  accessStatus = status || { trialExpired: true, trialLabel: "5分钟" };
   const fpResult = await window.api.getFingerprint();
   const fingerprint = fpResult?.fingerprint || "获取失败";
   $("fingerprintInput").value = fingerprint;
-  $("activationDialog").showModal();
+  $("activationHint").textContent = accessStatus.trialExpired
+    ? "试用期已结束，请输入激活码继续使用。"
+    : "请输入激活码以继续使用。";
+  $("activationExpiredMessage").textContent = accessStatus.trialExpired
+    ? `免费试用期为 ${accessStatus.trialLabel || "5分钟"}，到期后需要激活码。`
+    : "";
+  if (!$("activationDialog").open) {
+    $("activationDialog").showModal();
+  }
+}
+
+function quitExpiredApp() {
+  toast("试用期已结束，应用即将退出", true);
+  setTimeout(() => {
+    window.api.quitApp();
+  }, 500);
 }
 
 function bindActivationEvents() {
@@ -406,7 +462,18 @@ function bindActivationEvents() {
     }
   });
 
+  $("activationDialog").addEventListener("cancel", (event) => {
+    if (accessStatus?.trialExpired) {
+      event.preventDefault();
+      quitExpiredApp();
+    }
+  });
+
   $("closeActivationDialog").addEventListener("click", () => {
+    if (accessStatus?.trialExpired) {
+      quitExpiredApp();
+      return;
+    }
     toast("请完成激活以继续使用");
   });
 }
@@ -740,17 +807,18 @@ async function init() {
 
   // 监听激活对话框显示事件
   if (window.api.onShowActivationDialog) {
-    window.api.onShowActivationDialog(() => {
-      showActivationDialog();
+    window.api.onShowActivationDialog((_, status) => {
+      showActivationDialogWithStatus(status);
     });
   }
 
-  // 检查激活状态
-  const activatedResult = await window.api.isActivated();
-  if (!activatedResult.activated) {
-    await showActivationDialog();
+  const currentAccessStatus = await window.api.getAccessStatus();
+  if (!currentAccessStatus.activated && currentAccessStatus.trialExpired) {
+    await showActivationDialogWithStatus(currentAccessStatus);
     return;
   }
+
+  renderTrialBanner(currentAccessStatus);
 
   await safeCall(refreshAll);
   await safeCall(notifyReminders);

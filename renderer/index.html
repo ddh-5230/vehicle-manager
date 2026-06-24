@@ -28,8 +28,15 @@
             <h2 id="viewTitle">首页总览</h2>
             <p id="todayLabel"></p>
           </div>
-          <button id="refreshAllBtn" class="btn secondary">刷新数据</button>
+          <div class="toolbar-actions">
+            <span class="license-badge hidden" id="licenseBadge">未激活</span>
+            <button id="refreshAllBtn" class="btn secondary">刷新数据</button>
+          </div>
         </header>
+        <section class="trial-banner hidden" id="trialBanner">
+          <strong id="trialBannerTitle">当前状态：未激活</strong>
+          <span id="trialBannerText">还剩 5 分钟免费使用</span>
+        </section>
 
         <section class="view active" id="view-dashboard">
           <div class="cards" id="dashboardCards"></div>
@@ -366,7 +373,8 @@
     <dialog id="activationDialog" class="modal">
       <form method="dialog" class="modal-form" id="activationForm">
         <h3>软件激活</h3>
-        <p class="activation-hint">首次使用需要激活，请按以下步骤操作：</p>
+        <p class="activation-hint" id="activationHint">试用期已结束，请输入激活码继续使用。</p>
+        <p class="activation-expired-message" id="activationExpiredMessage">免费试用期为 5 分钟，到期后需要激活码。</p>
         
         <div class="activation-step">
           <h4>第 1 步：复制本机指纹</h4>
@@ -388,7 +396,7 @@
 
         <div class="actions">
           <button class="btn primary" type="submit">激活</button>
-          <button class="btn ghost" type="button" id="closeActivationDialog">关闭</button>
+          <button class="btn ghost" type="button" id="closeActivationDialog">退出应用</button>
         </div>
       </form>
     </dialog>

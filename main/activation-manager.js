@@ -4,10 +4,14 @@ const { generateFingerprint } = require("./fingerprint");
 const { verifyActivationCode } = require("./activation");
 
 const ACTIVATION_FILE = "activation.json";
+const TRIAL_FILE = "trial.json";
+const TRIAL_LABEL = "5分钟";
+const TRIAL_DURATION_MS = 5 * 60 * 1000;
 
 class ActivationManager {
   constructor(userDataPath) {
     this.activationFilePath = path.join(userDataPath, ACTIVATION_FILE);
+    this.trialFilePath = path.join(userDataPath, TRIAL_FILE);
   }
 
   getActivationData() {
@@ -40,6 +44,48 @@ class ActivationManager {
     }
   }
 
+  getTrialData() {
+    try {
+      console.log("[试用系统] 读取试用文件:", this.trialFilePath);
+      if (fs.existsSync(this.trialFilePath)) {
+        const content = fs.readFileSync(this.trialFilePath, "utf8");
+        const data = JSON.parse(content);
+        console.log("[试用系统] 试用数据已读取");
+        return data;
+      }
+      console.log("[试用系统] 试用文件不存在");
+    } catch (error) {
+      console.error("[试用系统] 读取试用文件失败:", error.message);
+    }
+    return null;
+  }
+
+  saveTrialData(data) {
+    try {
+      console.log("[试用系统] 保存试用数据到:", this.trialFilePath);
+      fs.mkdirSync(path.dirname(this.trialFilePath), { recursive: true });
+      fs.writeFileSync(this.trialFilePath, JSON.stringify(data, null, 2), "utf8");
+      console.log("[试用系统] 试用数据保存成功");
+      return true;
+    } catch (error) {
+      console.error("[试用系统] 保存试用文件失败:", error.message);
+      return false;
+    }
+  }
+
+  ensureTrialData() {
+    const existing = this.getTrialData();
+    if (existing && existing.trialStartedAt) {
+      return existing;
+    }
+
+    const created = {
+      trialStartedAt: new Date().toISOString()
+    };
+    this.saveTrialData(created);
+    return created;
+  }
+
   generateFingerprint() {
     return generateFingerprint();
   }
@@ -64,6 +110,39 @@ class ActivationManager {
     const isValid = verifyActivationCode(data.fingerprint, data.activationCode);
     console.log("[激活系统] 激活码验证结果:", isValid ? "✓ 有效" : "❌ 无效或已过期");
     return isValid;
+  }
+
+  getAccessStatus() {
+    if (this.isActivated()) {
+      return {
+        activated: true,
+        trialExpired: false,
+        trialLabel: TRIAL_LABEL
+      };
+    }
+
+    const trialData = this.ensureTrialData();
+    const startedAt = new Date(trialData.trialStartedAt);
+    const startedTime = startedAt.getTime();
+
+    if (Number.isNaN(startedTime)) {
+      const resetData = { trialStartedAt: new Date().toISOString() };
+      this.saveTrialData(resetData);
+      return this.getAccessStatus();
+    }
+
+    const expiresAt = new Date(startedTime + TRIAL_DURATION_MS);
+    const now = Date.now();
+    const remainingMs = Math.max(0, expiresAt.getTime() - now);
+
+    return {
+      activated: false,
+      trialExpired: remainingMs <= 0,
+      trialLabel: TRIAL_LABEL,
+      trialStartedAt: startedAt.toISOString(),
+      trialExpiresAt: expiresAt.toISOString(),
+      remainingMs
+    };
   }
 
   activate(activationCode) {
@@ -97,6 +176,9 @@ class ActivationManager {
     try {
       if (fs.existsSync(this.activationFilePath)) {
         fs.unlinkSync(this.activationFilePath);
+      }
+      if (fs.existsSync(this.trialFilePath)) {
+        fs.unlinkSync(this.trialFilePath);
       }
       return true;
     } catch (error) {

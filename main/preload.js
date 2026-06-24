@@ -20,8 +20,10 @@ contextBridge.exposeInMainWorld("api", {
   // 激活相关
   getFingerprint: () => ipcRenderer.invoke("activation:get-fingerprint"),
   isActivated: () => ipcRenderer.invoke("activation:is-activated"),
+  getAccessStatus: () => ipcRenderer.invoke("activation:get-access-status"),
   activate: (activationCode) => ipcRenderer.invoke("activation:activate", activationCode),
   restartApp: () => ipcRenderer.invoke("app:restart"),
+  quitApp: () => ipcRenderer.invoke("app:quit"),
   onShowActivationDialog: (callback) => ipcRenderer.on("show-activation-dialog", callback),
 
   dashboardGet: () => ipcRenderer.invoke("dashboard:get"),
