@@ -389,26 +389,26 @@ function renderTrialBanner(status) {
     return;
   }
 
-  const trialLabel = status.trialLabel || "5分钟";
-  const remainingMinutes = Math.max(1, Math.ceil(Number(status.remainingMs || 0) / (60 * 1000)));
+  const trialLabel = status.trialLabel || "3天";
+  const remainingDays = Math.max(1, Math.ceil(Number(status.remainingMs || 0) / (24 * 60 * 60 * 1000)));
   const expiresAt = status.trialExpiresAt
     ? new Date(status.trialExpiresAt).toLocaleString("zh-CN", { hour12: false })
     : "";
   $("trialBannerTitle").textContent = "当前状态：未激活";
   $("trialBannerText").textContent = expiresAt
-    ? `试用总时长 ${trialLabel}，当前还剩 ${remainingMinutes} 分钟，到期时间：${expiresAt}。`
+    ? `试用总时长 ${trialLabel}，当前还剩 ${remainingDays} 天，到期时间：${expiresAt}。`
     : `试用总时长 ${trialLabel}，到期后需要输入激活码。`;
   banner.classList.remove("hidden");
 }
 
 async function showActivationDialog() {
-  return showActivationDialogWithStatus({ trialExpired: true, trialLabel: "5分钟" });
+  return showActivationDialogWithStatus({ trialExpired: true, trialLabel: "3天" });
 }
 
 let accessStatus = null;
 
 async function showActivationDialogWithStatus(status) {
-  accessStatus = status || { trialExpired: true, trialLabel: "5分钟" };
+  accessStatus = status || { trialExpired: true, trialLabel: "3天" };
   const fpResult = await window.api.getFingerprint();
   const fingerprint = fpResult?.fingerprint || "获取失败";
   $("fingerprintInput").value = fingerprint;
@@ -416,7 +416,7 @@ async function showActivationDialogWithStatus(status) {
     ? "试用期已结束，请输入激活码继续使用。"
     : "请输入激活码以继续使用。";
   $("activationExpiredMessage").textContent = accessStatus.trialExpired
-    ? `免费试用期为 ${accessStatus.trialLabel || "5分钟"}，到期后需要激活码。`
+    ? `免费试用期为 ${accessStatus.trialLabel || "3天"}，到期后需要激活码。`
     : "";
   if (!$("activationDialog").open) {
     $("activationDialog").showModal();
