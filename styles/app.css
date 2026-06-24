@@ -85,6 +85,12 @@ body {
   justify-content: space-between;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .toolbar h2 {
   margin: 0;
   font-size: 26px;
@@ -93,6 +99,45 @@ body {
 .toolbar p {
   margin: 8px 0 0;
   color: var(--muted);
+}
+
+.trial-banner {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #f0d29d;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff8e9 0%, #fff2d7 100%);
+  color: #7a5412;
+  box-shadow: var(--shadow);
+}
+
+.trial-banner strong {
+  display: block;
+  font-size: 13px;
+}
+
+.trial-banner span {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.license-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #f0d29d;
+  background: #fff3dc;
+  color: #9a6700;
+}
+
+.license-badge.activated {
+  border-color: #b7dfc2;
+  background: #eaf7ef;
+  color: #1f6b36;
 }
 
 .view {
@@ -458,6 +503,12 @@ select {
 .activation-hint-small {
   margin: 6px 0 0;
   color: var(--muted);
+  font-size: 12px;
+}
+
+.activation-expired-message {
+  margin: 0 0 12px;
+  color: #b42318;
   font-size: 12px;
 }
 

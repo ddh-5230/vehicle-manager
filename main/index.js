@@ -211,12 +211,21 @@ function registerHandlers() {
     return { activated: activationManager.isActivated() };
   });
 
+  ipcMain.handle("activation:get-access-status", async () => {
+    return activationManager.getAccessStatus();
+  });
+
   ipcMain.handle("activation:activate", async (_, activationCode) => {
     return activationManager.activate(activationCode);
   });
 
   ipcMain.handle("app:restart", async () => {
     app.relaunch();
+    app.exit(0);
+    return { success: true };
+  });
+
+  ipcMain.handle("app:quit", async () => {
     app.exit(0);
     return { success: true };
   });
@@ -317,15 +326,18 @@ app.whenReady().then(async () => {
   
   // 检查激活状态
   console.log("[应用启动] 检查激活状态...");
-  const isActivated = activationManager.isActivated();
-  console.log("[应用启动] 激活状态:", isActivated ? "✓ 已激活" : "❌ 未激活");
+  const accessStatus = activationManager.getAccessStatus();
+  console.log("[应用启动] 激活状态:", accessStatus.activated ? "✓ 已激活" : "❌ 未激活");
+  if (!accessStatus.activated) {
+    console.log("[应用启动] 试用状态:", accessStatus.trialExpired ? "❌ 已到期" : "✓ 试用中");
+  }
   
   createWindow();
   
-  if (!isActivated) {
+  if (!accessStatus.activated && accessStatus.trialExpired) {
     mainWindow.webContents.once("did-finish-load", () => {
       console.log("[应用启动] 发送激活对话框信号");
-      mainWindow.webContents.send("show-activation-dialog");
+      mainWindow.webContents.send("show-activation-dialog", accessStatus);
     });
   }
 
