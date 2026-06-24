@@ -5,8 +5,8 @@ const { verifyActivationCode } = require("./activation");
 
 const ACTIVATION_FILE = "activation.json";
 const TRIAL_FILE = "trial.json";
-const TRIAL_LABEL = "5分钟";
-const TRIAL_DURATION_MS = 5 * 60 * 1000;
+const TRIAL_LABEL = "3天";
+const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
 class ActivationManager {
   constructor(userDataPath) {
